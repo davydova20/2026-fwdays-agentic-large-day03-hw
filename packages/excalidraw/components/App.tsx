@@ -423,7 +423,6 @@ import { LaserTrails } from "../laser-trails";
 import { withBatchedUpdates, withBatchedUpdatesThrottled } from "../reactUtils";
 import { isPointHittingTextAutoResizeHandle } from "../textAutoResizeHandle";
 import { textWysiwyg } from "../wysiwyg/textWysiwyg";
-import { resolveMarkdownTextOnSubmit } from "../wysiwyg/markdownLink";
 import { isOverScrollBars } from "../scene/scrollbars";
 
 import { isMaybeMermaidDefinition } from "../mermaid";
@@ -5682,11 +5681,7 @@ class App extends React.Component<AppProps, AppState> {
   ) {
     const elementsMap = this.scene.getElementsMapIncludingDeleted();
 
-    const updateElement = (
-      nextOriginalText: string,
-      isDeleted: boolean,
-      linkPatch?: { link: string | null },
-    ) => {
+    const updateElement = (nextOriginalText: string, isDeleted: boolean) => {
       this.scene.replaceAllElements([
         // Not sure why we include deleted elements as well hence using deleted elements map
         ...this.scene.getElementsIncludingDeleted().map((_element) => {
@@ -5694,7 +5689,6 @@ class App extends React.Component<AppProps, AppState> {
             return newElementWith(_element, {
               originalText: nextOriginalText,
               isDeleted: isDeleted ?? _element.isDeleted,
-              ...(linkPatch ? { link: linkPatch.link } : {}),
               // returns (wrapped) text and new dimensions
               ...refreshTextDimensions(
                 _element,
@@ -5732,12 +5726,8 @@ class App extends React.Component<AppProps, AppState> {
         }
       }),
       onSubmit: withBatchedUpdates(({ viaKeyboard, nextOriginalText }) => {
-        const resolved = resolveMarkdownTextOnSubmit(nextOriginalText);
-        const linkPatch =
-          resolved.link !== undefined ? { link: resolved.link } : undefined;
-        const isDeleted =
-          !resolved.originalText.trim() && resolved.link === undefined;
-        updateElement(resolved.originalText, isDeleted, linkPatch);
+        const isDeleted = !nextOriginalText.trim();
+        updateElement(nextOriginalText, isDeleted);
 
         // keyboard-submit keeps focus on the edited object. For bound text, keep
         // the container selected even if the text becomes empty and is deleted.
